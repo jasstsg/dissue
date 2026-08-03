@@ -75,7 +75,6 @@ export async function handleFeedbackModalSubmit(interaction, env, ctx) {
     const title = fieldValue(rows, 'feedbackTitle');
     const description = fieldValue(rows, 'feedbackDescription');
     const submitter = interaction.member.user.username;
-    const guildName = interaction.guild.name;
 
     ctx.waitUntil((async () => {
         try {
@@ -89,7 +88,7 @@ export async function handleFeedbackModalSubmit(interaction, env, ctx) {
             }
 
             const { installationId, owner, repo } = JSON.parse(guildConfigRaw);
-            const githubBody = `Reported by @${submitter} in the ${guildName} discord server\n\n# Description\n${description}`;
+            const githubBody = `Reported by @${submitter} via Discord\n\n# Description\n${description}`;
 
             const issue = await createIssue(env, {
                 installationId,
