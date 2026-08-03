@@ -39,7 +39,7 @@ async function handleInteraction(request, env, ctx) {
 
     if (interaction.type === InteractionType.APPLICATION_COMMAND) {
         if (interaction.data.name === 'setup') {
-            return json(await handleSetupCommand(interaction, env));
+            return json(await handleSetupCommand(interaction, env, ctx));
         }
         if (interaction.data.name === 'feedback') {
             return json(buildFeedbackModal());

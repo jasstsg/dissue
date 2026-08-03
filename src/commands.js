@@ -2,7 +2,7 @@ import { InteractionResponseType, InteractionResponseFlags } from 'discord-inter
 import { editOriginalResponse, isGuildAdmin } from './discord.js';
 import { createIssue } from './github.js';
 
-export async function handleSetupCommand(interaction, env) {
+export async function handleSetupCommand(interaction, env, ctx) {
     if (!isGuildAdmin(interaction)) {
         return {
             type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
@@ -14,7 +14,7 @@ export async function handleSetupCommand(interaction, env) {
     }
 
     const state = crypto.randomUUID();
-    await env.GUILD_CONFIG.put(`state:${state}`, interaction.guild_id, { expirationTtl: 600 });
+    ctx.waitUntil(env.GUILD_CONFIG.put(`state:${state}`, interaction.guild_id, { expirationTtl: 600 }));
 
     const installUrl = `https://github.com/apps/${env.GITHUB_APP_SLUG}/installations/new?state=${state}`;
 
@@ -71,35 +71,31 @@ function fieldValue(rows, customId) {
 }
 
 export async function handleFeedbackModalSubmit(interaction, env, ctx) {
-    const guildConfigRaw = await env.GUILD_CONFIG.get(`guild:${interaction.guild_id}`);
-
-    if (!guildConfigRaw) {
-        return {
-            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
-            data: {
-                content: "This server hasn't connected a GitHub repo yet. Ask an admin to run /setup first.",
-                flags: InteractionResponseFlags.EPHEMERAL,
-            },
-        };
-    }
-
-    const { installationId, owner, repo } = JSON.parse(guildConfigRaw);
-
     const rows = interaction.data.components;
     const title = fieldValue(rows, 'feedbackTitle');
     const description = fieldValue(rows, 'feedbackDescription');
     const submitter = interaction.member.user.username;
     const guildName = interaction.guild.name;
 
-    const githubBody = `Reported by @${submitter} in the ${guildName} discord server\n\n${description}`;
-
     ctx.waitUntil((async () => {
         try {
+            const guildConfigRaw = await env.GUILD_CONFIG.get(`guild:${interaction.guild_id}`);
+
+            if (!guildConfigRaw) {
+                await editOriginalResponse(env.DISCORD_APPLICATION_ID, interaction.token, {
+                    content: "This server hasn't connected a GitHub repo yet. Ask an admin to run /setup first.",
+                });
+                return;
+            }
+
+            const { installationId, owner, repo } = JSON.parse(guildConfigRaw);
+            const githubBody = `Reported by @${submitter} in the ${guildName} discord server\n\n${description}`;
+
             const issue = await createIssue(env, {
                 installationId,
                 owner,
                 repo,
-                title: title,
+                title,
                 body: githubBody,
             });
             await editOriginalResponse(env.DISCORD_APPLICATION_ID, interaction.token, {
