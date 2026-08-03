@@ -8,10 +8,10 @@ import 'dotenv/config';
 const commands = [
     new SlashCommandBuilder()
         .setName('feedback')
-        .setDescription('Open the intake form to submit a bug to this server\'s connected GitHub repo.'),
+        .setDescription('Open a form to submit feedback to the connected GitHub repo.'),
     new SlashCommandBuilder()
         .setName('setup')
-        .setDescription('(Admin only) Connect this server to a GitHub repo for bug reports.')
+        .setDescription('[Admin only] Connect this server the GitHub repo you want to submit issues to.')
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
 ].map(command => command.toJSON());
 
