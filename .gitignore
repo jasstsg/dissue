@@ -1,5 +1,5 @@
+_certs
+_plans
 .env
 .wrangler
-*.pem
 node_modules
-_plans
