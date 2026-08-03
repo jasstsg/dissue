@@ -1,0 +1,30 @@
+{
+  "name": "dissue",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jasstsg/dissue.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jasstsg/dissue/issues"
+  },
+  "homepage": "https://github.com/jasstsg/dissue#readme",
+  "description": "Discord bot that submits bug reports as GitHub issues.",
+  "dependencies": {
+    "@tsndr/cloudflare-worker-jwt": "^3.2.2",
+    "discord-interactions": "^4.4.0",
+    "discord.js": "^14.27.0",
+    "dotenv": "^17.4.2"
+  },
+  "devDependencies": {
+    "wrangler": "^4.118.0"
+  }
+}

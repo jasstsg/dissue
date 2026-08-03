@@ -1,0 +1,31 @@
+// One-off script: registers this app's slash commands with Discord.
+// Run manually after adding/changing a command: node index.js
+// The actual interaction handling lives in the Worker (src/worker.js), not here.
+
+import { SlashCommandBuilder, PermissionFlagsBits, REST, Routes } from 'discord.js';
+import 'dotenv/config';
+
+const commands = [
+    new SlashCommandBuilder()
+        .setName('feedback')
+        .setDescription('Open the intake form to submit a bug to this server\'s connected GitHub repo.'),
+    new SlashCommandBuilder()
+        .setName('setup')
+        .setDescription('(Admin only) Connect this server to a GitHub repo for bug reports.')
+        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+].map(command => command.toJSON());
+
+const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+
+(async () => {
+    try {
+        console.log('Started refreshing application (/) commands.');
+        await rest.put(
+            Routes.applicationCommands(process.env.CLIENT_ID),
+            { body: commands },
+        );
+        console.log('Successfully reloaded application (/) commands.');
+    } catch (error) {
+        console.error(error);
+    }
+})();
