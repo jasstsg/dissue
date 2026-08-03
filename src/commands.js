@@ -89,7 +89,7 @@ export async function handleFeedbackModalSubmit(interaction, env, ctx) {
             }
 
             const { installationId, owner, repo } = JSON.parse(guildConfigRaw);
-            const githubBody = `Reported by @${submitter} in the ${guildName} discord server\n\n${description}`;
+            const githubBody = `Reported by @${submitter} in the ${guildName} discord server\n\n# Description\n${description}`;
 
             const issue = await createIssue(env, {
                 installationId,
