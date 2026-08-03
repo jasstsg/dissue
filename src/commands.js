@@ -52,7 +52,7 @@ export function buildFeedbackModal() {
                         custom_id: 'feedbackDescription',
                         label: 'Detailed Description',
                         style: 2,
-                        placeholder: 'It would be really cool if there was a way to... \n\nOR\n\nThere is an issue with the UI, this is how to reproduce it:\n1. Open the main menu\n2. Go to..',
+                        placeholder: 'A feature idea, or a bug + steps to reproduce it (1. Open... 2. Click...)',
                         required: true,
                     }],
                 }

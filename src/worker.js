@@ -28,9 +28,7 @@ export default {
 };
 
 async function handleInteraction(request, env, ctx) {
-    const t0 = Date.now();
     const { isValid, interaction } = await verifyDiscordRequest(request, env);
-    console.log(`[timing] verify done at +${Date.now() - t0}ms`);
     if (!isValid) {
         return new Response('Invalid request signature', { status: 401 });
     }
@@ -41,21 +39,16 @@ async function handleInteraction(request, env, ctx) {
 
     if (interaction.type === InteractionType.APPLICATION_COMMAND) {
         if (interaction.data.name === 'setup') {
-            const result = await handleSetupCommand(interaction, env, ctx);
-            console.log(`[timing] setup responding at +${Date.now() - t0}ms`);
-            return json(result);
+            return json(await handleSetupCommand(interaction, env, ctx));
         }
         if (interaction.data.name === 'feedback') {
-            console.log(`[timing] feedback modal responding at +${Date.now() - t0}ms`);
             return json(buildFeedbackModal());
         }
     }
 
     if (interaction.type === InteractionType.MODAL_SUBMIT) {
         if (interaction.data.custom_id === 'feedbackReportModal') {
-            const result = await handleFeedbackModalSubmit(interaction, env, ctx);
-            console.log(`[timing] modal submit responding at +${Date.now() - t0}ms`);
-            return json(result);
+            return json(await handleFeedbackModalSubmit(interaction, env, ctx));
         }
     }
 
