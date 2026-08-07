@@ -3,12 +3,29 @@ import type {
     APIChatInputApplicationCommandGuildInteraction,
     APIModalSubmitGuildInteraction,
     APIInteractionResponse,
+    APIInteractionResponseChannelMessageWithSource,
     APIModalInteractionResponse,
     APIModalSubmissionComponent,
 } from 'discord-api-types/v10';
 import { editOriginalResponse, sendFollowupMessage, isGuildAdmin } from './discord.js';
 import { createIssue } from './github.js';
 import type { Env } from './env.js';
+
+export function buildHelpResponse(): APIInteractionResponseChannelMessageWithSource {
+    return {
+        type: InteractionResponseType.ChannelMessageWithSource,
+        data: {
+            content: [
+                '**Dissue** connects this server to a GitHub repo for reporting bugs and feature ideas.',
+                '',
+                '`/setup` — (admin only) connect this server to a GitHub repo. Only needs to be run once.',
+                '`/feedback` — open a form to submit a bug report or feature idea as a GitHub issue.',
+                '`/help` — show this message.',
+            ].join('\n'),
+            flags: MessageFlags.Ephemeral,
+        },
+    };
+}
 
 export async function handleSetupCommand(
     interaction: APIChatInputApplicationCommandGuildInteraction,
@@ -73,7 +90,7 @@ export function buildFeedbackModal(): APIModalInteractionResponse {
     };
 }
 
-function fieldValue(rows: APIModalSubmissionComponent[], customId: string): string {
+export function fieldValue(rows: APIModalSubmissionComponent[], customId: string): string {
     for (const row of rows) {
         if (row.type !== ComponentType.ActionRow) continue;
         for (const component of row.components) {

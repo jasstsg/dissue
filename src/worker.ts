@@ -9,7 +9,7 @@
 import { InteractionType, InteractionResponseType } from 'discord-api-types/v10';
 import type { APIChatInputApplicationCommandGuildInteraction, APIModalSubmitGuildInteraction } from 'discord-api-types/v10';
 import { verifyDiscordRequest, json } from './discord.js';
-import { handleSetupCommand, buildFeedbackModal, handleFeedbackModalSubmit } from './commands.js';
+import { handleSetupCommand, buildFeedbackModal, handleFeedbackModalSubmit, buildHelpResponse } from './commands.js';
 import { handleGitHubCallback } from './githubCallback.js';
 import type { Env } from './env.js';
 
@@ -46,6 +46,9 @@ async function handleInteraction(request: Request, env: Env, ctx: ExecutionConte
         }
         if (interaction.data.name === 'feedback') {
             return json(buildFeedbackModal());
+        }
+        if (interaction.data.name === 'help') {
+            return json(buildHelpResponse());
         }
     }
 

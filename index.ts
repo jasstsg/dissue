@@ -13,6 +13,9 @@ const commands = [
         .setName('setup')
         .setDescription('[Admin only] Connect this server the GitHub repo you want to submit issues to.')
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+    new SlashCommandBuilder()
+        .setName('help')
+        .setDescription('Show what Dissue can do and how to use it.'),
 ].map(command => command.toJSON());
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN!);
