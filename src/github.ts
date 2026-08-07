@@ -1,11 +1,23 @@
 import jwt from '@tsndr/cloudflare-worker-jwt';
+import type { Env } from './env.js';
 
 const GITHUB_API = 'https://api.github.com';
 
 // GitHub's API rejects requests with no User-Agent header (403).
 const USER_AGENT = 'dissue-discord-bot';
 
-async function signAppJwt(env) {
+interface GitHubRepository {
+    name: string;
+    owner: { login: string };
+}
+
+interface GitHubIssue {
+    number: number;
+    title: string;
+    html_url: string;
+}
+
+async function signAppJwt(env: Env): Promise<string> {
     const now = Math.floor(Date.now() / 1000);
     return jwt.sign(
         {
@@ -18,7 +30,7 @@ async function signAppJwt(env) {
     );
 }
 
-export async function getInstallationToken(env, installationId) {
+export async function getInstallationToken(env: Env, installationId: string): Promise<string> {
     const appJwt = await signAppJwt(env);
     const response = await fetch(`${GITHUB_API}/app/installations/${installationId}/access_tokens`, {
         method: 'POST',
@@ -34,11 +46,11 @@ export async function getInstallationToken(env, installationId) {
         throw new Error(`Failed to mint installation token: ${response.status} ${await response.text()}`);
     }
 
-    const data = await response.json();
+    const data = await response.json() as { token: string };
     return data.token; // valid for ~1 hour
 }
 
-export async function listInstallationRepositories(env, installationId) {
+export async function listInstallationRepositories(env: Env, installationId: string): Promise<GitHubRepository[]> {
     const token = await getInstallationToken(env, installationId);
     const response = await fetch(`${GITHUB_API}/installation/repositories`, {
         headers: {
@@ -53,11 +65,18 @@ export async function listInstallationRepositories(env, installationId) {
         throw new Error(`Failed to list installation repositories: ${response.status} ${await response.text()}`);
     }
 
-    const data = await response.json();
+    const data = await response.json() as { repositories: GitHubRepository[] };
     return data.repositories;
 }
 
-export async function createIssue(env, { installationId, owner, repo, title, body }) {
+export async function createIssue(env: Env, options: {
+    installationId: string;
+    owner: string;
+    repo: string;
+    title: string;
+    body: string;
+}): Promise<GitHubIssue> {
+    const { installationId, owner, repo, title, body } = options;
     const token = await getInstallationToken(env, installationId);
 
     const response = await fetch(`${GITHUB_API}/repos/${owner}/${repo}/issues`, {

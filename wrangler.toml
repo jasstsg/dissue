@@ -1,5 +1,5 @@
 name = "dissue"
-main = "src/worker.js"
+main = "src/worker.ts"
 compatibility_date = "2026-08-02"
 compatibility_flags = ["nodejs_compat"]
 account_id = "9d830dced26757ef120f7f7789534039"

@@ -1,6 +1,7 @@
 # Dissue
 
 Discord bot for creating GitHub Issues.
+
 ![Dissue](images/dissue-bot.png)
 
 

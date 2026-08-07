@@ -1,6 +1,7 @@
 import { listInstallationRepositories } from './github.js';
+import type { Env } from './env.js';
 
-export async function handleGitHubCallback(request, env) {
+export async function handleGitHubCallback(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const installationId = url.searchParams.get('installation_id');
     const state = url.searchParams.get('state');

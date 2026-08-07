@@ -1,10 +1,12 @@
 {
   "name": "dissue",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "index.ts",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "typecheck": "tsc --noEmit",
+    "register-commands": "tsx index.ts"
   },
   "repository": {
     "type": "git",
@@ -25,6 +27,11 @@
     "dotenv": "^17.4.2"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260804.1",
+    "@types/node": "^26.1.2",
+    "discord-api-types": "^0.38.53",
+    "tsx": "^4.23.11",
+    "typescript": "^7.0.2",
     "wrangler": "^4.118.0"
   }
 }

@@ -1,15 +1,28 @@
 import { verifyKey } from 'discord-interactions';
+import type {
+    APIInteraction,
+    APIInteractionResponse,
+    APIInteractionResponseCallbackData,
+    APIChatInputApplicationCommandGuildInteraction,
+    APIModalSubmitGuildInteraction,
+} from 'discord-api-types/v10';
+import type { Env } from './env.js';
 
 const WEBHOOK_ENDPOINT = `https://discord.com/api/v10/webhooks`;
 
-export async function verifyDiscordRequest(request, env) {
+export async function verifyDiscordRequest(
+    request: Request,
+    env: Env,
+): Promise<{ isValid: false } | { isValid: true; interaction: APIInteraction }> {
     const signature = request.headers.get('x-signature-ed25519');
     const timestamp = request.headers.get('x-signature-timestamp');
     const body = await request.text();
 
-    const isValid = signature && timestamp &&
-        await verifyKey(body, signature, timestamp, env.DISCORD_PUBLIC_KEY);
+    if (!signature || !timestamp) {
+        return { isValid: false };
+    }
 
+    const isValid = await verifyKey(body, signature, timestamp, env.DISCORD_PUBLIC_KEY);
     if (!isValid) {
         return { isValid: false };
     }
@@ -17,14 +30,18 @@ export async function verifyDiscordRequest(request, env) {
     return { isValid: true, interaction: JSON.parse(body) };
 }
 
-export function json(data) {
+export function json(data: APIInteractionResponse): Response {
     return new Response(JSON.stringify(data), {
         headers: { 'Content-Type': 'application/json' },
     });
 }
 
 // Edits the deferred reply once the async GitHub work finishes.
-export async function editOriginalResponse(applicationId, interactionToken, payload) {
+export async function editOriginalResponse(
+    applicationId: string,
+    interactionToken: string,
+    payload: APIInteractionResponseCallbackData,
+): Promise<void> {
     const url = `${WEBHOOK_ENDPOINT}/${applicationId}/${interactionToken}/messages/@original`;
     await fetch(url, {
         method: 'PATCH',
@@ -37,7 +54,11 @@ export async function editOriginalResponse(applicationId, interactionToken, payl
 // (ephemeral or not) is independent of the original response's flags, so
 // this is how a private "thinking" ack can still be followed by a public
 // result visible to the whole channel.
-export async function sendFollowupMessage(applicationId, interactionToken, payload) {
+export async function sendFollowupMessage(
+    applicationId: string,
+    interactionToken: string,
+    payload: APIInteractionResponseCallbackData,
+): Promise<void> {
     const url = `${WEBHOOK_ENDPOINT}/${applicationId}/${interactionToken}`;
     await fetch(url, {
         method: 'POST',
@@ -46,10 +67,10 @@ export async function sendFollowupMessage(applicationId, interactionToken, paylo
     });
 }
 
-const ADMINISTRATOR = 0x8;
-const MANAGE_GUILD = 0x20;
+const ADMINISTRATOR = 0x8n;
+const MANAGE_GUILD = 0x20n;
 
-export function isGuildAdmin(interaction) {
-    const permissions = BigInt(interaction.member?.permissions ?? 0);
-    return (permissions & BigInt(ADMINISTRATOR)) !== 0n || (permissions & BigInt(MANAGE_GUILD)) !== 0n;
+export function isGuildAdmin(interaction: APIChatInputApplicationCommandGuildInteraction | APIModalSubmitGuildInteraction): boolean {
+    const permissions = BigInt(interaction.member.permissions);
+    return (permissions & ADMINISTRATOR) !== 0n || (permissions & MANAGE_GUILD) !== 0n;
 }

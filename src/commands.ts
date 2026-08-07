@@ -1,14 +1,26 @@
-import { InteractionResponseType, InteractionResponseFlags } from 'discord-interactions';
+import { ComponentType, TextInputStyle, InteractionResponseType, MessageFlags } from 'discord-api-types/v10';
+import type {
+    APIChatInputApplicationCommandGuildInteraction,
+    APIModalSubmitGuildInteraction,
+    APIInteractionResponse,
+    APIModalInteractionResponse,
+    APIModalSubmissionComponent,
+} from 'discord-api-types/v10';
 import { editOriginalResponse, sendFollowupMessage, isGuildAdmin } from './discord.js';
 import { createIssue } from './github.js';
+import type { Env } from './env.js';
 
-export async function handleSetupCommand(interaction, env, ctx) {
+export async function handleSetupCommand(
+    interaction: APIChatInputApplicationCommandGuildInteraction,
+    env: Env,
+    ctx: ExecutionContext,
+): Promise<APIInteractionResponse> {
     if (!isGuildAdmin(interaction)) {
         return {
-            type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+            type: InteractionResponseType.ChannelMessageWithSource,
             data: {
                 content: 'Only server admins can run /setup.',
-                flags: InteractionResponseFlags.EPHEMERAL,
+                flags: MessageFlags.Ephemeral,
             },
         };
     }
@@ -19,50 +31,51 @@ export async function handleSetupCommand(interaction, env, ctx) {
     const installUrl = `https://github.com/apps/${env.GITHUB_APP_SLUG}/installations/new?state=${state}`;
 
     return {
-        type: InteractionResponseType.CHANNEL_MESSAGE_WITH_SOURCE,
+        type: InteractionResponseType.ChannelMessageWithSource,
         data: {
             content: `Connect this server's GitHub repo by installing the app here (link expires in 10 minutes):\n${installUrl}`,
-            flags: InteractionResponseFlags.EPHEMERAL,
+            flags: MessageFlags.Ephemeral,
         },
     };
 }
 
-export function buildFeedbackModal() {
+export function buildFeedbackModal(): APIModalInteractionResponse {
     return {
-        type: InteractionResponseType.MODAL,
+        type: InteractionResponseType.Modal,
         data: {
             custom_id: 'feedbackReportModal',
-            title: 'Submit a New Bug',
+            title: 'Submit feedback',
             components: [
                 {
-                    type: 1,
+                    type: ComponentType.ActionRow,
                     components: [{
-                        type: 4,
+                        type: ComponentType.TextInput,
                         custom_id: 'feedbackTitle',
                         label: 'Issue Title / Summary',
-                        style: 1,
+                        style: TextInputStyle.Short,
                         placeholder: 'e.g., Login button crashing on mobile',
                         required: true,
                     }],
                 },
                 {
-                    type: 1,
+                    type: ComponentType.ActionRow,
                     components: [{
-                        type: 4,
+                        type: ComponentType.TextInput,
                         custom_id: 'feedbackDescription',
                         label: 'Detailed Description',
-                        style: 2,
+                        style: TextInputStyle.Paragraph,
                         placeholder: 'A feature idea, or a bug + steps to reproduce it (1. Open... 2. Click...)',
                         required: true,
                     }],
-                }
+                },
             ],
         },
     };
 }
 
-function fieldValue(rows, customId) {
+function fieldValue(rows: APIModalSubmissionComponent[], customId: string): string {
     for (const row of rows) {
+        if (row.type !== ComponentType.ActionRow) continue;
         for (const component of row.components) {
             if (component.custom_id === customId) return component.value;
         }
@@ -70,7 +83,11 @@ function fieldValue(rows, customId) {
     return '';
 }
 
-export async function handleFeedbackModalSubmit(interaction, env, ctx) {
+export async function handleFeedbackModalSubmit(
+    interaction: APIModalSubmitGuildInteraction,
+    env: Env,
+    ctx: ExecutionContext,
+): Promise<APIInteractionResponse> {
     const rows = interaction.data.components;
     const title = fieldValue(rows, 'feedbackTitle');
     const description = fieldValue(rows, 'feedbackDescription');
@@ -87,7 +104,11 @@ export async function handleFeedbackModalSubmit(interaction, env, ctx) {
                 return;
             }
 
-            const { installationId, owner, repo } = JSON.parse(guildConfigRaw);
+            const { installationId, owner, repo } = JSON.parse(guildConfigRaw) as {
+                installationId: string;
+                owner: string;
+                repo: string;
+            };
             const githubBody = `Reported by @${submitter} via Discord\n\n# Description\n${description}`;
 
             const issue = await createIssue(env, {
@@ -112,7 +133,7 @@ export async function handleFeedbackModalSubmit(interaction, env, ctx) {
     })());
 
     return {
-        type: InteractionResponseType.DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE,
-        data: { flags: InteractionResponseFlags.EPHEMERAL },
+        type: InteractionResponseType.DeferredChannelMessageWithSource,
+        data: { flags: MessageFlags.Ephemeral },
     };
 }
