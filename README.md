@@ -2,7 +2,7 @@
 
 Discord bot for creating GitHub Issues.
 
-![Dissue](images/dissue-bot.png)
+![Dissue](images/dissue-bot-short.png)
 
 
 ## Setup (server admins)
