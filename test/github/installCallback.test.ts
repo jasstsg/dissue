@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { handleGitHubCallback } from '../src/githubCallback.js';
-import { createFakeKV, testGitHubAppPrivateKey } from './testHelpers.js';
-import type { Env } from '../src/env.js';
+import { handleGitHubCallback } from '../../src/github/installCallback.js';
+import { createFakeKV, testGitHubAppPrivateKey } from '../testHelpers.js';
+import type { Env } from '../../src/env.js';
 
 function makeEnv(kv: KVNamespace): Env {
     return {

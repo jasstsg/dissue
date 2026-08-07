@@ -66,7 +66,7 @@ export function makeExecutionContext() {
 }
 
 // Real (but throwaway) RSA key so code paths that actually sign a JWT
-// (github.ts's signAppJwt) succeed in tests, instead of throwing on
+// (github/client.ts's signAppJwt) succeed in tests, instead of throwing on
 // obviously-fake key material. Generated once and cached since it's
 // somewhat expensive.
 let cachedTestPrivateKey: string | undefined;

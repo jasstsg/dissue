@@ -1,6 +1,6 @@
-import { listInstallationRepositories } from './github.js';
-import { syncLabels } from './guildConfig.js';
-import type { Env } from './env.js';
+import { listInstallationRepositories } from './client.js';
+import { syncLabels } from '../guildConfig.js';
+import type { Env } from '../env.js';
 
 export async function handleGitHubCallback(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);

@@ -1,4 +1,4 @@
-import { listLabels } from './github.js';
+import { listLabels } from './github/client.js';
 import type { Env } from './env.js';
 
 // Only labels with this prefix become feedback-type options — lets repo

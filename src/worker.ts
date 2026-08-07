@@ -8,9 +8,13 @@
 
 import { InteractionType, InteractionResponseType } from 'discord-api-types/v10';
 import type { APIChatInputApplicationCommandGuildInteraction, APIModalSubmitGuildInteraction } from 'discord-api-types/v10';
-import { verifyDiscordRequest, json } from './discord.js';
-import { handleSetupCommand, handleSyncLabelsCommand, buildFeedbackModal, handleFeedbackModalSubmit, buildHelpResponse } from './commands.js';
-import { handleGitHubCallback } from './githubCallback.js';
+import { verifyDiscordRequest, json } from './discord/client.js';
+import { handleSetupCommand } from './commands/setup.js';
+import { handleSyncLabelsCommand } from './commands/syncLabels.js';
+import { buildFeedbackModal } from './commands/feedback.js';
+import { handleFeedbackModalSubmit } from './commands/feedbackSubmit.js';
+import { buildHelpResponse } from './commands/help.js';
+import { handleGitHubCallback } from './github/installCallback.js';
 import type { Env } from './env.js';
 
 export default {

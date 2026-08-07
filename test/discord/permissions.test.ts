@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { isGuildAdmin } from '../src/discord.js';
+import { isGuildAdmin } from '../../src/discord/permissions.js';
 
 test('isGuildAdmin returns true for Administrator permission', () => {
     assert.equal(isGuildAdmin({ member: { permissions: String(0x8) } }), true);

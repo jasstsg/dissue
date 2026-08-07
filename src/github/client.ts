@@ -1,5 +1,5 @@
 import jwt from '@tsndr/cloudflare-worker-jwt';
-import type { Env } from './env.js';
+import type { Env } from '../env.js';
 
 const GITHUB_API = 'https://api.github.com';
 
@@ -40,16 +40,23 @@ async function signAppJwt(env: Env): Promise<string> {
     );
 }
 
-export async function getInstallationToken(env: Env, installationId: string): Promise<string> {
-    const appJwt = await signAppJwt(env);
-    const response = await fetch(`${GITHUB_API}/app/installations/${installationId}/access_tokens`, {
-        method: 'POST',
+function githubFetch(url: string, token: string, init: RequestInit = {}): Promise<Response> {
+    return fetch(url, {
+        ...init,
         headers: {
-            'Authorization': `Bearer ${appJwt}`,
+            'Authorization': `Bearer ${token}`,
             'Accept': 'application/vnd.github+json',
             'X-GitHub-Api-Version': '2022-11-28',
             'User-Agent': USER_AGENT,
+            ...init.headers,
         },
+    });
+}
+
+export async function getInstallationToken(env: Env, installationId: string): Promise<string> {
+    const appJwt = await signAppJwt(env);
+    const response = await githubFetch(`${GITHUB_API}/app/installations/${installationId}/access_tokens`, appJwt, {
+        method: 'POST',
     });
 
     if (!response.ok) {
@@ -62,14 +69,7 @@ export async function getInstallationToken(env: Env, installationId: string): Pr
 
 export async function listInstallationRepositories(env: Env, installationId: string): Promise<GitHubRepository[]> {
     const token = await getInstallationToken(env, installationId);
-    const response = await fetch(`${GITHUB_API}/installation/repositories`, {
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/vnd.github+json',
-            'X-GitHub-Api-Version': '2022-11-28',
-            'User-Agent': USER_AGENT,
-        },
-    });
+    const response = await githubFetch(`${GITHUB_API}/installation/repositories`, token);
 
     if (!response.ok) {
         throw new Error(`Failed to list installation repositories: ${response.status} ${await response.text()}`);
@@ -81,14 +81,7 @@ export async function listInstallationRepositories(env: Env, installationId: str
 
 export async function listLabels(env: Env, installationId: string, owner: string, repo: string): Promise<GitHubLabel[]> {
     const token = await getInstallationToken(env, installationId);
-    const response = await fetch(`${GITHUB_API}/repos/${owner}/${repo}/labels?per_page=100`, {
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/vnd.github+json',
-            'X-GitHub-Api-Version': '2022-11-28',
-            'User-Agent': USER_AGENT,
-        },
-    });
+    const response = await githubFetch(`${GITHUB_API}/repos/${owner}/${repo}/labels?per_page=100`, token);
 
     if (!response.ok) {
         throw new Error(`Failed to list labels: ${response.status} ${await response.text()}`);
@@ -108,15 +101,9 @@ export async function createIssue(env: Env, options: {
     const { installationId, owner, repo, title, body, labels } = options;
     const token = await getInstallationToken(env, installationId);
 
-    const response = await fetch(`${GITHUB_API}/repos/${owner}/${repo}/issues`, {
+    const response = await githubFetch(`${GITHUB_API}/repos/${owner}/${repo}/issues`, token, {
         method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/vnd.github+json',
-            'X-GitHub-Api-Version': '2022-11-28',
-            'Content-Type': 'application/json',
-            'User-Agent': USER_AGENT,
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, body, labels }),
     });
 
