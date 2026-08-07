@@ -1,4 +1,5 @@
 import { listInstallationRepositories } from './github.js';
+import { syncLabels } from './guildConfig.js';
 import type { Env } from './env.js';
 
 export async function handleGitHubCallback(request: Request, env: Env): Promise<Response> {
@@ -29,15 +30,21 @@ export async function handleGitHubCallback(request: Request, env: Env): Promise<
         }
 
         const [repo] = repositories;
-        await env.GUILD_CONFIG.put(`guild:${guildId}`, JSON.stringify({
+        const labels = await syncLabels(env, guildId, {
             installationId,
             owner: repo.owner.login,
             repo: repo.name,
-        }));
-
-        return new Response(`Connected! Bug reports in this server will now go to ${repo.owner.login}/${repo.name}.`, {
-            headers: { 'Content-Type': 'text/plain' },
+            labels: [],
         });
+
+        const labelNote = labels.length > 0
+            ? ` Found ${labels.length} feedback type${labels.length === 1 ? '' : 's'}: ${labels.map(l => l.displayName).join(', ')}.`
+            : ' No `discord:`-prefixed labels found yet — add some in GitHub and run /sync-labels to enable feedback types.';
+
+        return new Response(
+            `Connected! Bug reports in this server will now go to ${repo.owner.login}/${repo.name}.${labelNote}`,
+            { headers: { 'Content-Type': 'text/plain' } },
+        );
     } catch (error) {
         console.error('GitHub install callback failed:', error);
         return new Response(

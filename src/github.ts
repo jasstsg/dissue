@@ -17,6 +17,16 @@ interface GitHubIssue {
     html_url: string;
 }
 
+interface GitHubLabel {
+    name: string;
+}
+
+// Thrown specifically for GitHub's 422 validation errors, which is what a
+// stale/removed label name in the `labels` array on issue creation looks
+// like — distinct from auth/network failures, so callers can tell "maybe
+// worth refreshing labels and retrying" apart from a real failure.
+export class GitHubValidationError extends Error {}
+
 async function signAppJwt(env: Env): Promise<string> {
     const now = Math.floor(Date.now() / 1000);
     return jwt.sign(
@@ -69,14 +79,33 @@ export async function listInstallationRepositories(env: Env, installationId: str
     return data.repositories;
 }
 
+export async function listLabels(env: Env, installationId: string, owner: string, repo: string): Promise<GitHubLabel[]> {
+    const token = await getInstallationToken(env, installationId);
+    const response = await fetch(`${GITHUB_API}/repos/${owner}/${repo}/labels?per_page=100`, {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+            'User-Agent': USER_AGENT,
+        },
+    });
+
+    if (!response.ok) {
+        throw new Error(`Failed to list labels: ${response.status} ${await response.text()}`);
+    }
+
+    return response.json();
+}
+
 export async function createIssue(env: Env, options: {
     installationId: string;
     owner: string;
     repo: string;
     title: string;
     body: string;
+    labels?: string[];
 }): Promise<GitHubIssue> {
-    const { installationId, owner, repo, title, body } = options;
+    const { installationId, owner, repo, title, body, labels } = options;
     const token = await getInstallationToken(env, installationId);
 
     const response = await fetch(`${GITHUB_API}/repos/${owner}/${repo}/issues`, {
@@ -88,11 +117,15 @@ export async function createIssue(env: Env, options: {
             'Content-Type': 'application/json',
             'User-Agent': USER_AGENT,
         },
-        body: JSON.stringify({ title, body }),
+        body: JSON.stringify({ title, body, labels }),
     });
 
     if (!response.ok) {
-        throw new Error(`Failed to create issue: ${response.status} ${await response.text()}`);
+        const errorText = await response.text();
+        if (response.status === 422) {
+            throw new GitHubValidationError(`Failed to create issue: ${response.status} ${errorText}`);
+        }
+        throw new Error(`Failed to create issue: ${response.status} ${errorText}`);
     }
 
     return response.json();

@@ -15,7 +15,11 @@ function makeEnv(kv: KVNamespace): Env {
     };
 }
 
-function mockGitHub(t: import('node:test').TestContext, repositories: { name: string; owner: { login: string } }[]) {
+function mockGitHub(
+    t: import('node:test').TestContext,
+    repositories: { name: string; owner: { login: string } }[],
+    labels: { name: string }[] = [],
+) {
     t.mock.method(globalThis, 'fetch', async (input: RequestInfo | URL) => {
         const url = input.toString();
         if (url.includes('/access_tokens')) {
@@ -23,6 +27,9 @@ function mockGitHub(t: import('node:test').TestContext, repositories: { name: st
         }
         if (url.includes('/installation/repositories')) {
             return new Response(JSON.stringify({ repositories }), { status: 200 });
+        }
+        if (url.includes('/labels')) {
+            return new Response(JSON.stringify(labels), { status: 200 });
         }
         throw new Error(`Unexpected fetch to ${url}`);
     });
@@ -57,13 +64,20 @@ test('rejects an installation granted access to more than one repository', async
 
 test('stores the guild config and confirms on a single-repo installation', async (t) => {
     const kv = createFakeKV({ 'state:abc': 'guild-1' });
-    mockGitHub(t, [{ name: 'dissue', owner: { login: 'jasstsg' } }]);
+    mockGitHub(t, [{ name: 'dissue', owner: { login: 'jasstsg' } }], [{ name: 'discord:bug' }, { name: 'unrelated-label' }]);
 
     const url = 'https://example.com/github/callback?installation_id=123&setup_action=install&state=abc';
     const response = await handleGitHubCallback(new Request(url), makeEnv(kv));
     assert.equal(response.status, 200);
-    assert.match(await response.text(), /jasstsg\/dissue/);
+    const text = await response.text();
+    assert.match(text, /jasstsg\/dissue/);
+    assert.match(text, /bug/);
 
     const stored = await kv.get('guild:guild-1');
-    assert.equal(stored, JSON.stringify({ installationId: '123', owner: 'jasstsg', repo: 'dissue' }));
+    assert.equal(stored, JSON.stringify({
+        installationId: '123',
+        owner: 'jasstsg',
+        repo: 'dissue',
+        labels: [{ name: 'discord:bug', displayName: 'bug' }],
+    }));
 });

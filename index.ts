@@ -14,6 +14,10 @@ const commands = [
         .setDescription('[Admin only] Connect this server the GitHub repo you want to submit issues to.')
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
     new SlashCommandBuilder()
+        .setName('sync-labels')
+        .setDescription('[Admin only] Re-pull feedback type options from GitHub labels prefixed "discord:".')
+        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+    new SlashCommandBuilder()
         .setName('help')
         .setDescription('Show what Dissue can do and how to use it.'),
 ].map(command => command.toJSON());
