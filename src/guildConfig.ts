@@ -22,7 +22,11 @@ export interface GuildConfig {
 
 export async function getGuildConfig(env: Env, guildId: string): Promise<GuildConfig | null> {
     const raw = await env.GUILD_CONFIG.get(`guild:${guildId}`);
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    // `labels` was added after some guilds already had a config stored —
+    // normalize it here so every caller can assume it's always an array.
+    const parsed = JSON.parse(raw) as GuildConfig;
+    return { ...parsed, labels: parsed.labels ?? [] };
 }
 
 export async function putGuildConfig(env: Env, guildId: string, config: GuildConfig): Promise<void> {

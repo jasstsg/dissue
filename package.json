@@ -6,7 +6,8 @@
   "scripts": {
     "test": "tsx --test test/**/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "register-commands": "tsx index.ts"
+    "register-commands": "tsx index.ts",
+    "tail": "wrangler tail --format pretty"
   },
   "repository": {
     "type": "git",

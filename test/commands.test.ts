@@ -249,7 +249,7 @@ test('handleFeedbackModalSubmit creates an issue with the selected label and rep
     await flush();
 
     assert.equal(editedMessages.length, 1);
-    assert.match((editedMessages[0] as { content: string }).content, /Submitted/);
+    assert.match((editedMessages[0] as { content: string }).content, /submitted/i);
     assert.equal(followups.length, 1);
     assert.match((followups[0] as { content: string }).content, /#42/);
 });

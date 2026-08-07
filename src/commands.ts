@@ -238,7 +238,7 @@ export async function handleFeedbackModalSubmit(
             } catch (error) {
                 if (error instanceof GitHubValidationError) {
                     await editOriginalResponse(env.DISCORD_APPLICATION_ID, interaction.token, {
-                        content: '❌ The feedback type you selected no longer exists. Please run /feedback again and pick a current option.',
+                        content: 'The feedback type you selected no longer exists. Please run /feedback again and pick a current option.',
                     });
                     return;
                 }
@@ -246,15 +246,16 @@ export async function handleFeedbackModalSubmit(
             }
 
             await editOriginalResponse(env.DISCORD_APPLICATION_ID, interaction.token, {
-                content: '✅ Submitted — posted below.',
+                content: 'Feedback submitted.',
             });
             await sendFollowupMessage(env.DISCORD_APPLICATION_ID, interaction.token, {
-                content: `📋 [#${issue.number} ${issue.title}](${issue.html_url})`,
+                content: `@${submitter} submitted feedback: [#${issue.number} ${issue.title}](${issue.html_url})`,
+                flags: MessageFlags.SuppressEmbeds,
             });
         } catch (error) {
             console.error('Failed to create GitHub issue:', error);
             await editOriginalResponse(env.DISCORD_APPLICATION_ID, interaction.token, {
-                content: '❌ Failed to connect to GitHub. Please try again later.',
+                content: 'Failed to connect to GitHub. Please try again later.',
             });
         }
     })());
