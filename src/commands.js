@@ -1,5 +1,5 @@
 import { InteractionResponseType, InteractionResponseFlags } from 'discord-interactions';
-import { editOriginalResponse, isGuildAdmin } from './discord.js';
+import { editOriginalResponse, sendFollowupMessage, isGuildAdmin } from './discord.js';
 import { createIssue } from './github.js';
 
 export async function handleSetupCommand(interaction, env, ctx) {
@@ -98,7 +98,10 @@ export async function handleFeedbackModalSubmit(interaction, env, ctx) {
                 body: githubBody,
             });
             await editOriginalResponse(env.DISCORD_APPLICATION_ID, interaction.token, {
-                content: `✅ Bug successfully logged! You can view it on our public tracker here: ${issue.html_url}`,
+                content: '✅ Submitted — posted below.',
+            });
+            await sendFollowupMessage(env.DISCORD_APPLICATION_ID, interaction.token, {
+                content: `📋 [#${issue.number} ${issue.title}](${issue.html_url})`,
             });
         } catch (error) {
             console.error('Failed to create GitHub issue:', error);

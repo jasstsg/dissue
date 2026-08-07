@@ -1,5 +1,7 @@
 import { verifyKey } from 'discord-interactions';
 
+const WEBHOOK_ENDPOINT = `https://discord.com/api/v10/webhooks`;
+
 export async function verifyDiscordRequest(request, env) {
     const signature = request.headers.get('x-signature-ed25519');
     const timestamp = request.headers.get('x-signature-timestamp');
@@ -23,9 +25,22 @@ export function json(data) {
 
 // Edits the deferred reply once the async GitHub work finishes.
 export async function editOriginalResponse(applicationId, interactionToken, payload) {
-    const url = `https://discord.com/api/v10/webhooks/${applicationId}/${interactionToken}/messages/@original`;
+    const url = `${WEBHOOK_ENDPOINT}/${applicationId}/${interactionToken}/messages/@original`;
     await fetch(url, {
         method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    });
+}
+
+// Sends a new message alongside the original deferred reply. Visibility
+// (ephemeral or not) is independent of the original response's flags, so
+// this is how a private "thinking" ack can still be followed by a public
+// result visible to the whole channel.
+export async function sendFollowupMessage(applicationId, interactionToken, payload) {
+    const url = `${WEBHOOK_ENDPOINT}/${applicationId}/${interactionToken}`;
+    await fetch(url, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
     });
