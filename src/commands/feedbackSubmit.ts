@@ -84,7 +84,7 @@ export async function handleFeedbackModalSubmit(
                 content: 'Feedback submitted.',
             });
             await sendFollowupMessage(env.DISCORD_APPLICATION_ID, interaction.token, {
-                content: `@${submitter} submitted feedback: #${issue.number} ${issue.title}`,
+                content: `@${submitter} submitted feedback: ${issue.title}`,
             });
         } catch (error) {
             console.error('Failed to create GitHub issue:', error);
