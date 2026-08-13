@@ -34,6 +34,7 @@ export function makeModalSubmitInteraction(overrides: {
     customId?: string;
     components?: APIModalSubmissionComponent[];
     username?: string;
+    resolved?: { attachments?: Record<string, { url: string }> };
 } = {}): APIModalSubmitGuildInteraction {
     return {
         id: 'interaction-id',
@@ -46,6 +47,7 @@ export function makeModalSubmitInteraction(overrides: {
         data: {
             custom_id: overrides.customId ?? 'feedbackReportModal',
             components: overrides.components ?? [],
+            resolved: overrides.resolved,
         },
     } as unknown as APIModalSubmitGuildInteraction;
 }

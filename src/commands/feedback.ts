@@ -5,6 +5,7 @@ import type {
     APIModalInteractionResponse,
     APIModalInteractionResponseCallbackComponent,
     APISelectMenuOption,
+    FileUploadType,
 } from 'discord-api-types/v10';
 import { ephemeralReply } from '../discord/client.js';
 import { getGuildConfig, type GuildConfig } from '../guildConfig.js';
@@ -43,6 +44,11 @@ function feedbackModal(config: GuildConfig): APIModalInteractionResponse {
             .asMultiLine('A feature idea, or a bug + steps to reproduce it (1. Open... 2. Click...)')
     );
 
+    components.push(
+        new ModalField('feedbackImages', 'Images (optional)', 'Hosted by Discord — may stop displaying in the GitHub issue after some time.')
+            .asFileUpload()
+    );
+
     return {
         type: InteractionResponseType.Modal,
         data: {
@@ -57,10 +63,11 @@ function feedbackModal(config: GuildConfig): APIModalInteractionResponse {
 class ModalField {
     component: ModalComponent;
 
-    constructor(id: string, label: string) {
+    constructor(id: string, label: string, description?: string) {
         this.component = {
             type: ComponentType.Label,
             label: label,
+            description,
             component: {
                 custom_id: id,
                 required: true
@@ -90,11 +97,23 @@ class ModalField {
 
         return this.component as APIModalInteractionResponseCallbackComponent;
     }
+
+    // Images are optional — unlike the other field types, which are always required.
+    asFileUpload(): APIModalInteractionResponseCallbackComponent {
+        this.component.component.type = ComponentType.FileUpload;
+        this.component.component.required = false;
+        this.component.component.min_values = 0;
+        this.component.component.max_values = 4;
+        this.component.component.file_types = ['image'];
+
+        return this.component as APIModalInteractionResponseCallbackComponent;
+    }
 }
 
 type ModalComponent = {
     type: ComponentType
     label: string
+    description?: string
     component: {
         type?: ComponentType
         style?: TextInputStyle
@@ -102,5 +121,8 @@ type ModalComponent = {
         placeholder?: string
         required: boolean,
         options?: APISelectMenuOption[]
+        min_values?: number
+        max_values?: number
+        file_types?: FileUploadType[]
     }
 }

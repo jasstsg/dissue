@@ -41,6 +41,13 @@ function selectRow(customId: string, values: string[]): APIModalSubmissionCompon
     };
 }
 
+function fileUploadRow(customId: string, attachmentIds: string[]): APIModalSubmissionComponent {
+    return {
+        type: ComponentType.Label,
+        component: { type: ComponentType.FileUpload, custom_id: customId, values: attachmentIds },
+    };
+}
+
 test('fieldValue reads a text input\'s value', () => {
     const rows = [labelRow('foo', 'bar'), labelRow('baz', 'qux')];
     assert.equal(fieldValue(rows, 'baz'), 'qux');
@@ -61,6 +68,7 @@ function mockDiscordAndGitHub(t: import('node:test').TestContext, options: {
 }) {
     const editedMessages: unknown[] = [];
     const followups: unknown[] = [];
+    const issueRequests: { title: string; body: string; labels?: string[] }[] = [];
     let issueCallCount = 0;
 
     t.mock.method(globalThis, 'fetch', async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -74,6 +82,7 @@ function mockDiscordAndGitHub(t: import('node:test').TestContext, options: {
             return new Response(JSON.stringify(options.labels ?? []), { status: 200 });
         }
         if (url.includes('/issues') && method === 'POST') {
+            issueRequests.push(JSON.parse(init!.body as string));
             const attempt = options.createIssueResponses[issueCallCount] ?? options.createIssueResponses.at(-1)!;
             issueCallCount++;
             return new Response(JSON.stringify(attempt.body), { status: attempt.status });
@@ -89,7 +98,7 @@ function mockDiscordAndGitHub(t: import('node:test').TestContext, options: {
         throw new Error(`Unexpected fetch: ${method} ${url}`);
     });
 
-    return { editedMessages, followups };
+    return { editedMessages, followups, issueRequests };
 }
 
 test('handleFeedbackModalSubmit creates an issue with the selected label and reports success', async (t) => {
@@ -120,7 +129,7 @@ test('handleFeedbackModalSubmit creates an issue with the selected label and rep
     assert.equal(editedMessages.length, 1);
     assert.match((editedMessages[0] as { content: string }).content, /submitted/i);
     assert.equal(followups.length, 1);
-    assert.match((followups[0] as { content: string }).content, /#42/);
+    assert.match((followups[0] as { content: string }).content, /Bug title/);
 });
 
 test('handleFeedbackModalSubmit resyncs labels and retries once on a stale label', async (t) => {
@@ -132,7 +141,7 @@ test('handleFeedbackModalSubmit resyncs labels and retries once on a stale label
     const { followups } = mockDiscordAndGitHub(t, {
         createIssueResponses: [
             { status: 422, body: { message: 'Validation Failed' } },
-            { status: 201, body: { number: 7, title: 'x', html_url: 'https://github.com/jasstsg/dissue/issues/7' } },
+            { status: 201, body: { number: 7, title: 'Retried title', html_url: 'https://github.com/jasstsg/dissue/issues/7' } },
         ],
         labels: [{ name: 'discord:bug' }],
     });
@@ -151,7 +160,7 @@ test('handleFeedbackModalSubmit resyncs labels and retries once on a stale label
     await flush();
 
     assert.equal(followups.length, 1);
-    assert.match((followups[0] as { content: string }).content, /#7/);
+    assert.match((followups[0] as { content: string }).content, /Retried title/);
 });
 
 test('handleFeedbackModalSubmit reports a clear error when the label is still gone after resync', async (t) => {
@@ -183,4 +192,99 @@ test('handleFeedbackModalSubmit reports a clear error when the label is still go
 
     assert.equal(editedMessages.length, 1);
     assert.match((editedMessages[0] as { content: string }).content, /no longer exists/);
+});
+
+test('handleFeedbackModalSubmit embeds a single attached image as markdown in the issue body', async (t) => {
+    const kv = kvWithGuildConfig('guild-1', {
+        installationId: '123', owner: 'jasstsg', repo: 'dissue', labels: [],
+    });
+    const env = makeEnv(kv);
+    const { issueRequests } = mockDiscordAndGitHub(t, {
+        createIssueResponses: [
+            { status: 201, body: { number: 1, title: 'T', html_url: 'https://github.com/jasstsg/dissue/issues/1' } },
+        ],
+    });
+
+    const interaction = makeModalSubmitInteraction({
+        guildId: 'guild-1',
+        components: [
+            labelRow('feedbackTitle', 'T'),
+            labelRow('feedbackDescription', 'D'),
+            fileUploadRow('feedbackImages', ['attachment-1']),
+        ],
+        resolved: {
+            attachments: {
+                'attachment-1': { url: 'https://cdn.discordapp.com/attachments/1/2/screenshot.png' },
+            },
+        },
+    });
+
+    const { ctx, flush } = makeExecutionContext();
+    await handleFeedbackModalSubmit(interaction, env, ctx);
+    await flush();
+
+    assert.equal(issueRequests.length, 1);
+    assert.match(issueRequests[0].body, /!\[Image 1]\(https:\/\/cdn\.discordapp\.com\/attachments\/1\/2\/screenshot\.png\)/);
+});
+
+test('handleFeedbackModalSubmit embeds multiple attached images as separate markdown lines', async (t) => {
+    const kv = kvWithGuildConfig('guild-1', {
+        installationId: '123', owner: 'jasstsg', repo: 'dissue', labels: [],
+    });
+    const env = makeEnv(kv);
+    const { issueRequests } = mockDiscordAndGitHub(t, {
+        createIssueResponses: [
+            { status: 201, body: { number: 1, title: 'T', html_url: 'https://github.com/jasstsg/dissue/issues/1' } },
+        ],
+    });
+
+    const interaction = makeModalSubmitInteraction({
+        guildId: 'guild-1',
+        components: [
+            labelRow('feedbackTitle', 'T'),
+            labelRow('feedbackDescription', 'D'),
+            fileUploadRow('feedbackImages', ['attachment-1', 'attachment-2']),
+        ],
+        resolved: {
+            attachments: {
+                'attachment-1': { url: 'https://cdn.discordapp.com/attachments/1/2/one.png' },
+                'attachment-2': { url: 'https://cdn.discordapp.com/attachments/1/3/two.png' },
+            },
+        },
+    });
+
+    const { ctx, flush } = makeExecutionContext();
+    await handleFeedbackModalSubmit(interaction, env, ctx);
+    await flush();
+
+    assert.equal(issueRequests.length, 1);
+    assert.match(issueRequests[0].body, /!\[Image 1]\(https:\/\/cdn\.discordapp\.com\/attachments\/1\/2\/one\.png\)/);
+    assert.match(issueRequests[0].body, /!\[Image 2]\(https:\/\/cdn\.discordapp\.com\/attachments\/1\/3\/two\.png\)/);
+});
+
+test('handleFeedbackModalSubmit omits image markdown when no files were attached', async (t) => {
+    const kv = kvWithGuildConfig('guild-1', {
+        installationId: '123', owner: 'jasstsg', repo: 'dissue', labels: [],
+    });
+    const env = makeEnv(kv);
+    const { issueRequests } = mockDiscordAndGitHub(t, {
+        createIssueResponses: [
+            { status: 201, body: { number: 1, title: 'T', html_url: 'https://github.com/jasstsg/dissue/issues/1' } },
+        ],
+    });
+
+    const interaction = makeModalSubmitInteraction({
+        guildId: 'guild-1',
+        components: [
+            labelRow('feedbackTitle', 'T'),
+            labelRow('feedbackDescription', 'D'),
+        ],
+    });
+
+    const { ctx, flush } = makeExecutionContext();
+    await handleFeedbackModalSubmit(interaction, env, ctx);
+    await flush();
+
+    assert.equal(issueRequests.length, 1);
+    assert.doesNotMatch(issueRequests[0].body, /Image/);
 });

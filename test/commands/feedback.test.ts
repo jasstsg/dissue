@@ -40,7 +40,7 @@ test('buildFeedbackModal omits the type field when there are no synced labels', 
     const customIds = response.data.components
         .filter(c => c.type === ComponentType.Label)
         .map(c => c.component.custom_id);
-    assert.deepEqual(customIds, ['feedbackTitle', 'feedbackDescription']);
+    assert.deepEqual(customIds, ['feedbackTitle', 'feedbackDescription', 'feedbackImages']);
 });
 
 test('buildFeedbackModal includes a type select built from synced labels', async () => {

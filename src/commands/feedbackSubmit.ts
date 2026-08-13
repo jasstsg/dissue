@@ -1,5 +1,6 @@
 import { ComponentType, InteractionResponseType, MessageFlags } from 'discord-api-types/v10';
 import type { APIModalSubmitGuildInteraction, APIInteractionResponse, APIModalSubmissionComponent } from 'discord-api-types/v10';
+import type { APIModalSubmitFileUploadComponent } from 'discord-api-types/v10';
 import { editOriginalResponse, sendFollowupMessage } from '../discord/client.js';
 import { createIssue, GitHubValidationError } from '../github/client.js';
 import { getGuildConfig, syncLabels, type GuildConfig } from '../guildConfig.js';
@@ -14,6 +15,23 @@ export function fieldValue(rows: APIModalSubmissionComponent[], customId: string
         if (component.type === ComponentType.StringSelect) return component.values[0] ?? '';
     }
     return '';
+}
+
+// FileUpload fields don't carry URLs directly — the submitted `values` are
+// attachment IDs that resolve against `interaction.data.resolved.attachments`.
+// We never download or re-host the files ourselves, only pass through the
+// URLs Discord already hosts them at.
+function imageUrls(interaction: APIModalSubmitGuildInteraction, customId: string): string[] {
+    for (const row of interaction.data.components) {
+        if (row.type !== ComponentType.Label || row.component.type !== ComponentType.FileUpload) continue;
+        const component: APIModalSubmitFileUploadComponent = row.component;
+        if (component.custom_id !== customId) continue;
+
+        return component.values
+            .map(attachmentId => interaction.data.resolved?.attachments?.[attachmentId]?.url)
+            .filter((url): url is string => Boolean(url));
+    }
+    return [];
 }
 
 async function createIssueWithLabelRetry(
@@ -48,6 +66,7 @@ export async function handleFeedbackModalSubmit(
     const title = fieldValue(rows, 'feedbackTitle');
     const description = fieldValue(rows, 'feedbackDescription');
     const selectedLabel = fieldValue(rows, 'feedbackType') || undefined;
+    const images = imageUrls(interaction, 'feedbackImages');
     const submitter = interaction.member.user.username;
 
     ctx.waitUntil((async () => {
@@ -61,7 +80,9 @@ export async function handleFeedbackModalSubmit(
                 return;
             }
 
-            const githubBody = `Reported by @${submitter} via Discord\n\n# Description\n${description}`;
+            const imagesMarkdown = images.map((url, index) => `![Image ${index + 1}](${url})`).join('\n');
+            const githubBody = `Reported by @${submitter} via Discord\n\n# Description\n${description}` +
+                (imagesMarkdown ? `\n\n${imagesMarkdown}` : '');
 
             let issue;
             try {
